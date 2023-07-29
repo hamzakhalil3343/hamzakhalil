@@ -46,7 +46,11 @@
 html {
   scroll-behavior: smooth;
 }
-
+body {
+  background: url(https://images.pexels.com/photos/934062/pexels-photo-934062.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940);
+  background-size: cover;
+  background-position: top;
+}
 /* Variables Dark theme */
 body.dark-theme{
   --title-color: #F2F2F2;
