@@ -32,7 +32,7 @@ function scrollActive(){
     sections.forEach(current =>{
         const sectionHeight = current.offsetHeight
         const sectionTop = current.offsetTop - 50;
-        sectionId = current.getAttribute('id')
+        const sectionId = current.getAttribute('id')
 
         if(scrollY > sectionTop && scrollY <= sectionTop + sectionHeight){
             document.querySelector('.nav__menu a[href*=' + sectionId + ']').classList.add('active-link')
@@ -81,12 +81,27 @@ themeButton.addEventListener('click', () => {
     localStorage.setItem('selected-icon', getCurrentIcon())
 })
 
-/* REDUCE THE SIZE AND PRINT ON AN A4 SHEET */ 
+/* REDUCE THE SIZE AND PRINT ON AN A4 SHEET */
 function scaleCv(){
     document.body.classList.add('scale-cv')
+
+    // Make all sections visible for PDF
+    const sections = document.querySelectorAll('.section');
+    sections.forEach(section => {
+        section.classList.add('section-visible');
+    });
+
+    // Remove typing animation styling for PDF
+    const nameElement = document.querySelector('.home_title');
+    if(nameElement) {
+        nameElement.style.borderRight = 'none';
+        nameElement.style.animation = 'none';
+        nameElement.style.overflow = 'visible';
+        nameElement.style.whiteSpace = 'normal';
+    }
 }
 
-/* REMOVE THE SIZE WHEN THE CV IS DOWNLOADED */ 
+/* REMOVE THE SIZE WHEN THE CV IS DOWNLOADED */
 function removeScale(){
     document.body.classList.remove('scale-cv')
 }
@@ -131,3 +146,83 @@ let opt = {
     /* 3. The .scale-cv class is removed from the body after 5 seconds to return to normal size. */
        // setTimeout(removeScale, 5000)
 })
+
+/* SCROLL REVEAL ANIMATION */
+const revealSection = () => {
+    const sections = document.querySelectorAll('.section');
+    const windowHeight = window.innerHeight;
+
+    sections.forEach(section => {
+        const sectionTop = section.getBoundingClientRect().top;
+        const revealPoint = 150;
+
+        if(sectionTop < windowHeight - revealPoint) {
+            section.classList.add('section-visible');
+        }
+    });
+}
+
+// Initial check for sections already in view
+window.addEventListener('load', revealSection);
+window.addEventListener('scroll', revealSection);
+
+/* TYPING ANIMATION FOR NAME */
+const nameElement = document.querySelector('.home_title');
+if(nameElement) {
+    nameElement.style.display = 'inline-block';
+    nameElement.classList.add('typing-animation');
+
+    // Remove animation after it completes
+    setTimeout(() => {
+        nameElement.style.borderRight = 'none';
+        nameElement.style.animation = 'none';
+    }, 4000);
+}
+
+/* SMOOTH SCROLL FOR NAVIGATION LINKS */
+const navLinks = document.querySelectorAll('.nav_link');
+navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href');
+        const targetSection = document.querySelector(targetId);
+
+        if(targetSection) {
+            targetSection.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+/* ADD ANIMATION TO ELEMENTS ON HOVER */
+const addHoverAnimation = (selector) => {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.02)';
+        });
+        element.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+}
+
+// Apply hover animations
+addHoverAnimation('.certificate_content');
+addHoverAnimation('.references_content');
+
+/* PROGRESSIVE COUNTER ANIMATION FOR EXPERIENCE YEARS */
+const animateValue = (element, start, end, duration) => {
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        element.innerHTML = Math.floor(progress * (end - start) + start);
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
+    };
+    window.requestAnimationFrame(step);
+}
