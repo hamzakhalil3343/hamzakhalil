@@ -101,7 +101,59 @@ body.scale-cv{
 /* Classes modified to reduce size and print on A4 sheet */
 .scale-cv .change-theme,
 .scale-cv .generate-pdf{
-  display: none;
+  display: none !important;
+}
+
+/* ---- PDF PAGE BREAKS ----
+   html2pdf slices the page at fixed A4 intervals, so without these rules a
+   break can land in the middle of a job, a bullet, or a heading. Each block
+   below is kept whole; if it does not fit, it moves to the next page. */
+.scale-cv .experience_content,
+.scale-cv .education_content,
+.scale-cv .certificate_content,
+.scale-cv .references_content,
+.scale-cv .interests_content,
+.scale-cv .skills_name,
+.scale-cv .languages_name,
+.scale-cv .social_link,
+.scale-cv .profile_description,
+.scale-cv .home_data,
+.scale-cv .home_address{
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Keep individual bullets and their nested EMR lists from splitting */
+.scale-cv .experience_data li,
+.scale-cv .experience_data ul{
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Never leave a section heading stranded at the foot of a page */
+.scale-cv .section-title,
+.scale-cv .experience_title,
+.scale-cv .education_title,
+.scale-cv .certificate_title,
+.scale-cv .references_title{
+  page-break-after: avoid;
+  break-after: avoid;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Keep a job title glued to the company line that follows it */
+.scale-cv .experience_company,
+.scale-cv .education_studies{
+  page-break-before: avoid;
+  break-before: avoid;
+}
+
+/* Orphan/widow control for flowing paragraphs */
+.scale-cv p,
+.scale-cv li{
+  orphans: 3;
+  widows: 3;
 }
 
 .scale-cv .bd-container{
@@ -131,9 +183,16 @@ body.scale-cv{
   white-space: normal !important;
 }
 
-.scale-cv .home_button-movil{
-  animation: none !important;
-  transform: none !important;
+/* Screen-only chrome must never reach the PDF.
+   These are hidden on desktop by the min-width:968px media query, but the
+   capture renders into an offscreen clone narrower than that breakpoint, so
+   the media query stops applying and they reappear in the output. Hiding
+   them on .scale-cv is viewport-independent and therefore reliable. */
+.scale-cv .home_button-movil,
+.scale-cv .l-header,
+.scale-cv .nav,
+.scale-cv .scrolltop{
+  display: none !important;
 }
 
 .scale-cv .education_content,
@@ -832,4 +891,549 @@ img {
     grid-template-columns: repeat(4, max-content);
     column-gap: 3.5rem;
   }
+}
+/*==================== VISUAL ENHANCEMENTS ====================*/
+/* Accent palette. Defined here so the whole enhancement layer can be
+   re-themed from one place, and so dark mode only has to override
+   these three values rather than every rule below. */
+:root{
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, .10);
+  --accent-line: rgba(37, 99, 235, .22);
+  --card-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 4px 12px rgba(16, 24, 40, .06);
+  --card-shadow-hover: 0 2px 4px rgba(16, 24, 40, .06), 0 12px 28px rgba(16, 24, 40, .12);
+  --ease: cubic-bezier(.4, 0, .2, 1);
+}
+
+body.dark-theme{
+  --accent: #60a5fa;
+  --accent-soft: rgba(96, 165, 250, .14);
+  --accent-line: rgba(96, 165, 250, .28);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 12px rgba(0, 0, 0, .25);
+  --card-shadow-hover: 0 2px 4px rgba(0, 0, 0, .35), 0 12px 28px rgba(0, 0, 0, .4);
+}
+
+body{
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Section headings: accent rule instead of a bare centered label ---- */
+.section-title{
+  position: relative;
+  letter-spacing: .18rem;
+  padding-bottom: .5rem;
+}
+
+.section-title::after{
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 34px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width .35s var(--ease);
+}
+
+.section:hover .section-title::after{
+  width: 56px;
+}
+
+/* ---- Name / role ---- */
+.home_title{
+  letter-spacing: -.01em;
+}
+
+.home_profession{
+  color: var(--accent);
+  font-weight: var(--font-medium);
+  letter-spacing: .01em;
+}
+
+/* ---- Contact rows: turn flat text into hoverable chips ---- */
+.home_address .home_information{
+  display: flex;
+  align-items: center;
+  padding: .3rem .45rem;
+  margin-left: -.45rem;
+  border-radius: 7px;
+  transition: background-color .25s var(--ease), color .25s var(--ease);
+}
+
+.home_address .home_information:hover{
+  background-color: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ---- Profile blurb: quoted card, the first thing a reader lands on ---- */
+.profile_description{
+  padding: 1rem 1.1rem;
+  border-radius: 10px;
+  background-color: var(--container-color);
+  border-left: 3px solid var(--accent);
+  box-shadow: var(--card-shadow);
+  line-height: 1.7;
+  text-align: left;
+}
+
+/* ---- Skill pills ---- */
+.skills_content{
+  gap: .55rem 1rem;
+}
+
+.skills_name{
+  padding: .3rem .6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: transform .22s var(--ease), background-color .22s var(--ease),
+              border-color .22s var(--ease), color .22s var(--ease);
+}
+
+.skills_name:hover{
+  background-color: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.skills_circle{
+  background-color: var(--accent);
+  transition: transform .22s var(--ease), box-shadow .22s var(--ease);
+}
+
+.skills_name:hover .skills_circle{
+  transform: scale(1.5);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+/* Skill group sub-headings (the inline-styled h4s in the markup) */
+.skills .section-title[style]{
+  text-align: left;
+  letter-spacing: .06rem;
+  color: var(--title-color);
+  opacity: .95;
+}
+
+.skills .section-title[style]::after{
+  display: none;
+}
+
+.skills .section-title[style] i{
+  color: var(--accent);
+  margin-right: .3rem;
+  vertical-align: middle;
+}
+
+/* ---- Social links ---- */
+.social_link{
+  padding: .3rem .45rem;
+  margin-left: -.45rem;
+  border-radius: 7px;
+  transition: background-color .25s var(--ease), color .25s var(--ease),
+              transform .25s var(--ease);
+}
+
+.social_link:hover{
+  background-color: var(--accent-soft);
+  color: var(--accent);
+  transform: translateX(3px);
+}
+
+/* ---- Timeline: accent dots with a soft halo on hover ---- */
+.education_rounder,
+.experience_rounder{
+  background-color: var(--accent);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
+}
+
+.education_content:hover .education_rounder,
+.experience_content:hover .experience_rounder{
+  transform: scale(1.35);
+  box-shadow: 0 0 0 5px var(--accent-soft);
+}
+
+.education_line,
+.experience_line{
+  background-color: var(--accent-line);
+}
+
+/* ---- Experience entries: liftable cards ---- */
+.experience_data{
+  padding: .9rem 1rem;
+  border-radius: 10px;
+  background-color: var(--container-color);
+  box-shadow: var(--card-shadow);
+  transition: transform .28s var(--ease), box-shadow .28s var(--ease);
+}
+
+.experience_content:hover .experience_data{
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.experience_title{
+  letter-spacing: -.005em;
+}
+
+.experience_company{
+  color: var(--text-color-light);
+}
+
+.experience_company a{
+  color: var(--accent);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color .22s var(--ease);
+}
+
+.experience_company a:hover{
+  border-bottom-color: var(--accent);
+}
+
+/* Bullets: replace default markers with accent dashes */
+.experience_data ul{
+  list-style: none;
+  padding-left: 0;
+}
+
+.experience_data > ul > li{
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: .55rem;
+  line-height: 1.65;
+}
+
+.experience_data > ul > li::before{
+  content: '';
+  position: absolute;
+  left: 0;
+  top: .62em;
+  width: 6px;
+  height: 2px;
+  border-radius: 2px;
+  background-color: var(--accent);
+}
+
+.experience_data strong{
+  color: var(--title-color);
+}
+
+/* Nested EMR list keeps its check icons, just tightened */
+.experience_data ul ul li{
+  padding-left: 0;
+  margin-bottom: .15rem;
+}
+
+.experience_data ul ul li::before{
+  display: none;
+}
+
+.experience_data a{
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent-line);
+  transition: color .2s var(--ease), border-color .2s var(--ease);
+}
+
+.experience_data ul ul a:hover{
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ---- Certificates ---- */
+.certificate_content{
+  padding: .85rem 1rem;
+  border-radius: 10px;
+  background-color: var(--container-color);
+  border-left: 3px solid transparent;
+  box-shadow: var(--card-shadow);
+  transition: transform .28s var(--ease), box-shadow .28s var(--ease),
+              border-color .28s var(--ease);
+}
+
+.certificate_content:hover{
+  transform: translateY(-3px);
+  border-left-color: var(--accent);
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* ---- References ---- */
+.references_content{
+  padding: .85rem 1rem;
+  border-radius: 10px;
+  background-color: var(--container-color);
+  box-shadow: var(--card-shadow);
+  transition: transform .28s var(--ease), box-shadow .28s var(--ease);
+}
+
+.references_content:hover{
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.references_subtitle{
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .06rem;
+  font-size: var(--smaller-font-size);
+}
+
+/* ---- Languages ---- */
+.languages_name{
+  transition: color .22s var(--ease), transform .22s var(--ease);
+}
+
+.languages_name:hover{
+  color: var(--accent);
+  transform: translateX(3px);
+}
+
+.languages_circle{
+  background-color: var(--accent);
+}
+
+/* ---- Interests ---- */
+.interests_content{
+  padding: .7rem .4rem;
+  border-radius: 10px;
+  transition: transform .28s var(--ease), background-color .28s var(--ease);
+}
+
+.interests_content:hover{
+  background-color: var(--accent-soft);
+  transform: translateY(-4px);
+}
+
+.interests_icon{
+  color: var(--accent);
+  transition: transform .28s var(--ease);
+}
+
+.interests_content:hover .interests_icon{
+  transform: scale(1.15);
+}
+
+/* ---- Theme + PDF control buttons ---- */
+.change-theme,
+.generate-pdf{
+  padding: .35rem;
+  border-radius: 50%;
+  transition: color .25s var(--ease), background-color .25s var(--ease),
+              transform .25s var(--ease);
+}
+
+.change-theme:hover,
+.generate-pdf:hover{
+  color: var(--accent);
+  background-color: var(--accent-soft);
+  transform: scale(1.12);
+}
+
+/* ---- Download button (mobile) ---- */
+.home_button-movil{
+  background-color: var(--accent);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease),
+              filter .25s var(--ease);
+}
+
+.home_button-movil:hover{
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 6px 18px var(--accent-line);
+}
+
+/* ---- Nav (mobile) ---- */
+.nav_link{
+  transition: color .22s var(--ease), transform .22s var(--ease);
+}
+
+.nav_link:hover,
+.nav_link.active-link{
+  color: var(--accent);
+}
+
+/* ---- Scroll-to-top ---- */
+.scrolltop{
+  background-color: var(--accent);
+  border-radius: 10px;
+  transition: transform .25s var(--ease), filter .25s var(--ease);
+}
+
+.scrolltop:hover{
+  transform: translateY(-3px);
+  filter: brightness(1.08);
+}
+
+/* ---- Staggered reveal: sections arrive in sequence, not all at once ---- */
+.section{
+  transform: translateY(28px);
+  transition: opacity .6s var(--ease), transform .6s var(--ease);
+}
+
+/* ---- Desktop: gradient sidebar + accent top edge ---- */
+@media screen and (min-width: 968px){
+  .resume{
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, .08), 0 20px 48px rgba(16, 24, 40, .12);
+  }
+
+  .resume__left{
+    background-image: linear-gradient(180deg,
+                      var(--container-color-alt) 0%,
+                      var(--container-color-alt) 55%,
+                      var(--accent-soft) 100%);
+    border-right: 1px solid var(--accent-line);
+  }
+
+  .section-title{
+    text-align: left;
+  }
+
+  .section-title::after{
+    left: 0;
+    transform: none;
+  }
+
+  .interests_container{
+    grid-template-columns: repeat(3, max-content);
+  }
+}
+
+/* ---- Accessibility: honour reduced-motion preferences ---- */
+@media (prefers-reduced-motion: reduce){
+  *,
+  *::before,
+  *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+
+  .section{
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/*==================== PDF OVERRIDES ====================*/
+/* The enhancement layer is screen-oriented. For the PDF capture, flatten
+   shadows and lifts so nothing renders as a grey smear, and keep the
+   accent colours, which print fine. */
+.scale-cv .profile_description,
+.scale-cv .experience_data,
+.scale-cv .certificate_content,
+.scale-cv .references_content{
+  box-shadow: none;
+  transform: none;
+}
+
+.scale-cv .experience_data,
+.scale-cv .certificate_content,
+.scale-cv .references_content{
+  padding: .4rem .5rem;
+  background-color: transparent;
+}
+
+.scale-cv .profile_description{
+  padding: .5rem .65rem;
+  background-color: transparent;
+}
+
+.scale-cv .skills_name{
+  padding: .1rem 0;
+  transform: none;
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.scale-cv .interests_content,
+.scale-cv .social_link,
+.scale-cv .home_address .home_information{
+  padding: 0;
+  margin-left: 0;
+  transform: none;
+  background-color: transparent;
+}
+
+/* ---- Single-column flow for PDF ----
+   THIS IS THE FIX FOR CONTENT BREAKING ACROSS PAGES.
+
+   On screen, .resume is a two-column grid. html2pdf flattens the page to one
+   tall image and slices it at fixed A4 intervals, so with two side-by-side
+   columns -- each several pages tall -- every horizontal cut lands mid-content
+   in one column or the other. No break-inside rule can prevent that, because
+   there is no cut position that is clean for both columns simultaneously.
+
+   Collapsing to a single column for the capture gives the slicer one linear
+   flow, so the break rules above can actually do their job. */
+.scale-cv .resume{
+  display: block !important;
+  grid-template-columns: none !important;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.scale-cv .resume__left,
+.scale-cv .resume__right{
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  border-right: none !important;
+}
+
+/* With the full width available, skills and interests read better in
+   columns than as one long stack. */
+.scale-cv .skills_content{
+  grid-template-columns: repeat(2, 1fr);
+  gap: .1rem 1.5rem;
+}
+
+.scale-cv .interests_container{
+  grid-template-columns: repeat(3, max-content);
+  column-gap: 2.5rem;
+}
+
+.scale-cv .languages_content{
+  grid-template-columns: repeat(3, max-content);
+  column-gap: 2.5rem;
+}
+
+.scale-cv .references_container{
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+/* Tighten vertical rhythm so the document runs to fewer pages */
+.scale-cv .section{
+  padding: .75rem 0 .5rem;
+  /* Neutralise any stagger delay left over from the reveal animation --
+     a pending transition mid-capture renders the section shifted. */
+  transition: none !important;
+  transition-delay: 0s !important;
+}
+
+/* Start Experience on a fresh page: it is the longest block, and letting it
+   begin partway down a page is what pushes entries into awkward splits. */
+.scale-cv .experience{
+  page-break-before: always;
+  break-before: page;
+}
+
+/* Keep the trailing short sections together rather than orphaning one */
+.scale-cv .languages,
+.scale-cv .interests{
+  page-break-inside: avoid;
+  break-inside: avoid;
 }

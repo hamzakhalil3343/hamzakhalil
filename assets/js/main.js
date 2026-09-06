@@ -14,7 +14,7 @@ const showMenu = (toggleId, navId) =>{
 showMenu('nav-toggle','nav-menu')
 
 /* REMOVE MENU MOBILE */
-const navLink = document.querySelectorAll('.nav__link')
+const navLink = document.querySelectorAll('.nav_link')
 
 function linkAction(){
     const navMenu = document.getElementById('nav-menu')
@@ -34,10 +34,15 @@ function scrollActive(){
         const sectionTop = current.offsetTop - 50;
         const sectionId = current.getAttribute('id')
 
+        /* The markup uses single-underscore BEM (.nav_menu), so the old
+           '.nav__menu' selector matched nothing and threw on every scroll. */
+        const link = document.querySelector('.nav_menu a[href*="' + sectionId + '"]')
+        if(!link) return
+
         if(scrollY > sectionTop && scrollY <= sectionTop + sectionHeight){
-            document.querySelector('.nav__menu a[href*=' + sectionId + ']').classList.add('active-link')
+            link.classList.add('active-link')
         }else{
-            document.querySelector('.nav__menu a[href*=' + sectionId + ']').classList.remove('active-link')
+            link.classList.remove('active-link')
         }
     })
 }
@@ -45,9 +50,13 @@ window.addEventListener('scroll', scrollActive)
 
 /* SHOW SCROLL TOP */ 
 function scrollTop(){
-    const scrollTop = document.getElementById('scroll-top');
-    /* When the scroll is higher than 560 viewport height, add the show-scroll class to the a tag with the scroll-top class */
-    if(this.scrollY >= 200) scrollTop.classList.add('show-scroll'); else scrollTop.classList.remove('show-scroll')
+    /* The element id in the markup is 'scrolltop', not 'scroll-top' -- the
+       old lookup returned null and threw on every scroll event. */
+    const scrollTopBtn = document.getElementById('scrolltop');
+    if(!scrollTopBtn) return
+
+    /* Show the button once the page has scrolled past 200px */
+    if(window.scrollY >= 200) scrollTopBtn.classList.add('show-scroll'); else scrollTopBtn.classList.remove('show-scroll')
 }
 window.addEventListener('scroll', scrollTop)
 
@@ -85,10 +94,13 @@ themeButton.addEventListener('click', () => {
 function scaleCv(){
     document.body.classList.add('scale-cv')
 
-    // Make all sections visible for PDF
+    // Make all sections visible for PDF and clear any stagger delay left
+    // by the reveal animation (inline styles beat the stylesheet, so these
+    // have to be cleared here rather than only in CSS).
     const sections = document.querySelectorAll('.section');
     sections.forEach(section => {
         section.classList.add('section-visible');
+        section.style.transitionDelay = '0s';
     });
 
     // Remove typing animation styling for PDF
@@ -104,6 +116,15 @@ function scaleCv(){
 /* REMOVE THE SIZE WHEN THE CV IS DOWNLOADED */
 function removeScale(){
     document.body.classList.remove('scale-cv')
+
+    // Undo the inline overrides scaleCv() applied to the title
+    const nameElement = document.querySelector('.home_title');
+    if(nameElement) {
+        nameElement.style.borderRight = '';
+        nameElement.style.animation = '';
+        nameElement.style.overflow = '';
+        nameElement.style.whiteSpace = '';
+    }
 }
 
 /* GENERATE PDF */ 
@@ -113,58 +134,109 @@ let areaCv = document.getElementById('area-cv')
 
 let resumeButton = document.getElementById('resume-button')
 
-/* Html2pdf options */
+/* Html2pdf options.
+   `margin` gives the slicer room to move a block down instead of cutting it,
+   and `pagebreak.mode` makes html2pdf honour the CSS break rules in
+   styles.css. Without 'css' in that list the break-inside rules are ignored
+   and content is split mid-element. */
 let opt = {
-  margin:       0,
-  filename:     'Muhammad-hamza-Resume.pdf',
+  margin:       [10, 8, 12, 8], // top, left, bottom, right (mm)
+  filename:     'Muhammad-Hamza-Khalil-Resume.pdf',
   image:        { type: 'jpeg', quality: 0.98 },
-  html2canvas:  { scale: 4 },
-  jsPDF:        { format: 'a4', orientation: 'portrait' }
+  html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0, windowWidth: 900 },
+  jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+  pagebreak:    {
+    mode:  ['css', 'legacy'],
+    avoid: ['li', '.experience_content', '.certificate_content',
+            '.references_content', '.education_content', '.interests_content']
+  }
 };
 
-/* Function to call areaCv and Html2Pdf options */
-    function generateResume(){
-        try {
-           var pedf = html2pdf(areaCv, opt)  ;
-           pedf.save('my.pdf')
-            console.log('success ',pedf) 
-        } catch (error) {
-            console.log('err is ',error)
-        }
-  
+/* Function to call areaCv and Html2Pdf options.
+   Returns the promise so the caller can restore the page only once the
+   render has actually finished. */
+function generateResume(){
+    return html2pdf().set(opt).from(areaCv).save();
 }
 
 /* When the button is clicked, it executes the three functions */
-    resumeButton.addEventListener('click', () =>{
+resumeButton.addEventListener('click', () => {
 
-    /* 1. The class .scale-cv is added to the body, where it reduces the size of the elements */
+    /* 1. Switch to PDF layout: .scale-cv shrinks type and collapses the
+          two-column grid into a single flow. */
     scaleCv()
 
-    /* 2. The PDF is generated */
-    generateResume()
+    /* 2. Wait for the browser to finish reflowing and for webfonts to settle
+          before capturing. scaleCv() changes the layout substantially, and
+          capturing on the same tick photographs the OLD two-column layout at
+          the NEW font sizes -- which is what splits content across pages.
+          Two rAFs guarantee a completed layout pass. */
+    const afterReflow = new Promise(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve))
+    })
 
-    /* 3. The .scale-cv class is removed from the body after 5 seconds to return to normal size. */
-       // setTimeout(removeScale, 5000)
+    const fontsReady = document.fonts ? document.fonts.ready : Promise.resolve()
+
+    /* 3. Generate, then restore the page only once the render has finished.
+          Removing the class early (or on a fixed timer) changes the layout
+          mid-capture and corrupts the output. */
+    Promise.all([afterReflow, fontsReady])
+        .then(() => generateResume())
+        .then(() => removeScale())
+        .catch((error) => {
+            console.error('PDF generation failed:', error)
+            removeScale()
+        })
 })
 
-/* SCROLL REVEAL ANIMATION */
-const revealSection = () => {
+/* SCROLL REVEAL ANIMATION
+   IntersectionObserver replaces the old scroll handler: it fires only when a
+   section actually crosses the viewport instead of re-measuring every element
+   on each scroll event. Sections already on screen at load are staggered so
+   they arrive in sequence rather than all at once. */
+const revealSections = () => {
     const sections = document.querySelectorAll('.section');
-    const windowHeight = window.innerHeight;
+
+    // No observer support (or reduced motion) -> just show everything.
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(!('IntersectionObserver' in window) || prefersReducedMotion) {
+        sections.forEach(section => section.classList.add('section-visible'));
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if(entry.isIntersecting) {
+                entry.target.classList.add('section-visible');
+                observer.unobserve(entry.target); // reveal once, then stop watching
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -80px 0px' });
+
+    const viewportHeight = window.innerHeight;
+    let staggerIndex = 0;
 
     sections.forEach(section => {
-        const sectionTop = section.getBoundingClientRect().top;
-        const revealPoint = 150;
+        const isAlreadyVisible = section.getBoundingClientRect().top < viewportHeight;
 
-        if(sectionTop < windowHeight - revealPoint) {
-            section.classList.add('section-visible');
+        if(isAlreadyVisible) {
+            // Stagger the initial paint, capped so nothing waits too long.
+            section.style.transitionDelay = `${Math.min(staggerIndex * 90, 540)}ms`;
+            staggerIndex++;
+            requestAnimationFrame(() => section.classList.add('section-visible'));
+        } else {
+            observer.observe(section);
         }
     });
+
+    // Drop the delays once the opening sequence is done, so later
+    // scroll-triggered reveals are immediate.
+    setTimeout(() => {
+        sections.forEach(section => { section.style.transitionDelay = ''; });
+    }, 1200);
 }
 
-// Initial check for sections already in view
-window.addEventListener('load', revealSection);
-window.addEventListener('scroll', revealSection);
+window.addEventListener('load', revealSections);
 
 /* TYPING ANIMATION FOR NAME */
 const nameElement = document.querySelector('.home_title');
